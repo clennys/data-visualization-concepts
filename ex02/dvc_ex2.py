@@ -37,8 +37,8 @@ def create_candlestick_chart(symbol):
     # The dataframe is not directly used as source here
     # because you'll use CDSView filter later
     # which works with ColumnDataSource
-    data = stock[stock.Symbol == symbol]
-    source = ColumnDataSource(data)
+    data_stock = stock[stock.Symbol == symbol]
+    source = ColumnDataSource(data_stock)
 
     p = figure(
         width=800,
@@ -46,7 +46,7 @@ def create_candlestick_chart(symbol):
         title=symbol,
         # Specify the x range to be (min date, max date)
         # so that you can refer to this range in other plots
-        x_range=(data["Date"].min(), data["Date"].max()),
+        x_range=(data_stock["Date"].min(), data_stock["Date"].max()),
         # Set the x axis to show date time
         x_axis_type="datetime",
         # Put the x axis to be at the top of the plot
@@ -60,15 +60,15 @@ def create_candlestick_chart(symbol):
     p.ygrid.grid_line_alpha = 0.5
     p.xaxis.major_label_text_font_size = "10px"
     p.yaxis.axis_label = "Stock Price in USD"
-    p.yaxis.formatter = NumeralTickFormatter(format="($0,0 a)")
+    p.yaxis.formatter = NumeralTickFormatter(format="(0.0a)")
 
     ## 2.2: Manually set the y axis range
 
     # Make it larger than the (min, max) range of the data
     # e.g. (min * 0.9, max * 1.1)
     # https://docs.bokeh.org/en/3.0.3/docs/reference/models/ranges.html#bokeh.models.DataRange1d
-    p.y_range.start = data.Low.min() * 0.9
-    p.y_range.end = data.High.max() * 1.1
+    p.y_range.start = data_stock.Low.min() * 0.9
+    p.y_range.end = data_stock.High.max() * 1.1
 
     ## 2.3: Use CDSView to create two filters on the stock data
 
@@ -76,13 +76,13 @@ def create_candlestick_chart(symbol):
     # 'dec' does the opposite of 'inc'
     # https://docs.bokeh.org/en/latest/docs/user_guide/basic/data.html#filtering-data
     inc_bf = BooleanFilter(
-        [True if row["Close"] < row["Open"] else False for _, row in data.iterrows()]
+        [True if row["Close"] > row["Open"] else False for _, row in data_stock.iterrows()]
     )
     dec_bf = BooleanFilter(
-        [True if row["Close"] > row["Open"] else False for _, row in data.iterrows()]
+        [True if row["Close"] < row["Open"] else False for _, row in data_stock.iterrows()]
     )
-    dec_view = CDSView(filter=dec_bf)
     inc_view = CDSView(filter=inc_bf)
+    dec_view = CDSView(filter=dec_bf)
 
     # Deprecated
     # inc = source.data["Close"] > source.data["Open"]
@@ -139,13 +139,13 @@ def create_candlestick_chart(symbol):
     # https://docs.bokeh.org/en/3.0.2/docs/user_guide/basic/axes.html#twin-axes
     # https://docs.bokeh.org/en/latest/docs/reference/models/axes.html#bokeh.models.LinearAxis
 
-    y_volume = data.Volume
-    p.extra_y_ranges["volume"] = Range1d(start=y_volume.min(), end=y_volume.max())
+    y_volume = data_stock.Volume
+    p.extra_y_ranges["volume"] = Range1d(start=y_volume.min()*0.9, end=y_volume.max()*1.1)
 
     y_volume_axis = LinearAxis(
         y_range_name="volume",
         axis_label="Volume",
-        formatter=NumeralTickFormatter(format="$0a"),
+        formatter=NumeralTickFormatter(format="0.0a"),
     )
 
     p.add_layout(y_volume_axis, "right")
@@ -166,12 +166,14 @@ def create_candlestick_chart(symbol):
     hover_stock = HoverTool()
     hover_stock.tooltips = [
         ("Date", "@Date{%Y-%m-%d}"),
-        ("Open", "@Open{($0,0)}"),
-        ("Close", "@Close{($0,0)}"),
-        ("High", "@High{($0,0)}"),
-        ("Low", "@Low{($0,0)}"),
-        ("Volume", "@Volume{($0,0 a)}"),
+        ("Open", "@Open{($0.00)}"),
+        ("Close", "@Close{($0.00)}"),
+        ("High", "@High{($0.00)}"),
+        ("Low", "@Low{($0.00)}"),
+        ("Volume", "@Volume{($0.00a)}"),
     ]
+
+    # printf in order to show float numbers
     hover_stock.formatters = {
         "@Date": "datetime",
     }
@@ -196,8 +198,8 @@ def add_metrics_plot(main_plot):
     # See how bokeh deals with data source containing nan values
     # https://docs.bokeh.org/en/latest/docs/user_guide/basic/lines.html#missing-points
     # Note that this might not work if the source is created from ColumnDataSource
-    data = metrics[metrics.Symbol == symbol]
-    source = ColumnDataSource(data)
+    data_metrics = metrics[metrics.Symbol == symbol]
+    source = ColumnDataSource(data_metrics)
 
     ## 3.1: Set the y axes for the metrics
 
@@ -207,8 +209,8 @@ def add_metrics_plot(main_plot):
     y_pe = source.data["PE Ratio"]
     y_eps = source.data["EPS Growth"]
 
-    p.extra_y_ranges["pe"] = Range1d(y_pe.min() * 0.9, y_pe.max() * 1.1)
-    p.extra_y_ranges["eps"] = Range1d(y_eps.min() * 0.9, y_eps.max() * 1.1)
+    p.extra_y_ranges["pe"] = Range1d(y_pe.min() * 1.0, y_pe.max() * 1.15)
+    p.extra_y_ranges["eps"] = Range1d(y_eps.min() * 2.25, y_eps.max() * 1.1)
 
     y_pe_axis = LinearAxis(y_range_name="pe", visible=False)
 
@@ -242,6 +244,7 @@ def add_metrics_plot(main_plot):
         y_range_name="eps",
         legend_label="EPS Growth",
         line_color="grey",
+        line_dash = "dotted"
     )
 
     eps_c = p.circle(

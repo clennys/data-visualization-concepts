@@ -135,3 +135,4 @@ if __name__ == "__main__":
 
     output_file("dvc_ex1.html")
     save(p)
+    show(p)
