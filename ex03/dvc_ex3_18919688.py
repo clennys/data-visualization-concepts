@@ -68,7 +68,6 @@ def pca(df):
     # use MinMaxScaler to scale the features
     X_scaled = MinMaxScaler().fit_transform(X)
     # use SimpleImputer to fill in the missing values with the mean value
-    # imp = SimpleImputer(missing_values=np.nan, strategy="mean")
     imp = SimpleImputer(strategy="mean")
     X_imp = imp.fit_transform(X_scaled)
     # perform PCA to project the features into 2 components
@@ -93,7 +92,7 @@ def pca(df):
 def clustering(df, n_clusters=2):
 
     # select the principal components
-    X_pca = df.iloc[:, -2:]
+    X_pca = df[["PCA 1", "PCA 2"]]
     # sets the random seed to 0 so that the result is reproducible
     np.random.seed(0)
     # use MiniBatchKMeans to perform the clustering
@@ -137,7 +136,7 @@ def create_cmap(df, col):
         mapper = factor_cmap(col, palette=palette, factors=l)
         # (Optional) make a dictionary of category:color pairs
         # it will be used to synchronize the colors in the main plot and the (optional) bar chart
-        cat_palette = {l[i]: palette[i] for i in range(len(l))}
+        cat_palette = None
     # create a continuous color mapper (linear_cmap or log_cmap) for numeric features
     # https://docs.bokeh.org/en/3.1.0/docs/examples/basic/data/color_mappers.html
     elif is_numeric_dtype(df[col]):
@@ -224,13 +223,18 @@ def plot_pca(source, df, ft_selected):
 # https://docs.bokeh.org/en/latest/docs/examples/topics/stats/histogram.html#index-0
 # https://github.com/bokeh/bokeh/blob/branch-3.1/examples/server/app/selection_histogram.py
 
+
 def draw_hist(df, col, points_selected):
     # get the corresponding rows in the dataframe for the selected points
     s = df.iloc[points_selected]
     # compute the tops and edges of the bins in the histogram
     # for all the points and the selected points respectively
-    hist_values, bin_edges = np.histogram(df[col].dropna().reset_index(drop=True), bins=len(df[col]))
-    hist_value_selected, _ = np.histogram(s[col].dropna().reset_index(drop=True), bins=bin_edges)
+    hist_values, bin_edges = np.histogram(
+        df[col].dropna().reset_index(drop=True), bins=len(df[col])
+    )
+    hist_value_selected, _ = np.histogram(
+        s[col].dropna().reset_index(drop=True), bins=bin_edges
+    )
     # create a data source for both sets of bins
     source = ColumnDataSource(
         data=dict(
@@ -306,85 +310,12 @@ def draw_hist(df, col, points_selected):
 
 
 def draw_bar_chart(df, col, points_selected):
-    # get the corresponding rows in the dataframe for the selected points
-    s = ...
-    # count the number in the categories
-    # for all the points and the selected points respectively
-    dis = df[col].value_counts()
-    dis_s = s.value_counts()
-    cat = dis.index.values
-    count = dis.values
-    # note that if the selected points do not have a certain category
-    # the corresponding count should be zero
-    count_s = []
-    for c in cat:
-        ...
-    # use the color palette you created before in the create_cmap function
-    # synchronize the color map of the bars with the pca plot
-    # i.e. each category should have the same color in the pca plot and the bar chart
-    _, cat_palette = create_cmap(df, col)
-    cat_color = ...
-    # create a data source for both sets of bars
-    source = ColumnDataSource(data=dict(...))
-
-    pb = figure(
-        x_range=cat,
-        y_range=(0, count.max() * 1.1),
-        y_axis_location="right",
-        width=400,
-        height=300,
-        min_border=20,
-        title=f"Distribution of {col}",
-        tools="pan, wheel_zoom, reset",
-        toolbar_location="below",
-    )
-
-    pb.background_fill_color = "#fafafa"
-    pb.xaxis.axis_label = f"{col}"
-    pb.yaxis.axis_label = "Counts"
-    # draw the bars of all points
-    bar_all = pb.vbar(
-        x=...,
-        top=...,
-        width=0.6,
-        color="white",
-        line_color="silver",
-        legend_label="all",
-        source=source,
-    )
-    # draw the bars of selected points
-    bar_selected = pb.vbar(
-        x=...,
-        top=...,
-        width=0.6,
-        color="color",
-        alpha=0.4,
-        legend_label="selected",
-        source=source,
-    )
-
-    pb.xgrid.grid_line_color = None
-    pb.xaxis.major_label_orientation = np.pi / 2
-    pb.legend.orientation = "horizontal"
-    pb.legend.location = "top_right"
-    # add a hover tool that shows the values of
-    # the category of a bar
-    # the counts of all points in the bar
-    # the counts of selected points in the bar
-    hover = HoverTool()
-    hover.tooltips = [("category", ...), ("all", ...), ("selected", ...)]
-    hover.renderers = [...]
-    pb.add_tools(hover)
-    pb.output_backend = "svg"
-
-    return pb
+    pass
 
 
 # Define a function to draw the subplot
 # according to the data type of the selected feature
 # and the indices of the selected points in the PCA plot
-
-
 def draw_subplot(df, ft_selected, points_selected):
     cs = ft_selected
     rs = points_selected
@@ -443,7 +374,7 @@ select_col_sub = Select(
     value=sub_ft_selected,
     # You are free to choose which features to include in the options
     # it is optional to include any categorical feature
-    options=["Mean Recommendation",  "Target Price", "RSI", "Enterprise To Revenue" ],
+    options=["Mean Recommendation", "Target Price", "RSI", "Enterprise To Revenue"],
     width=200,
     margin=(10, 10, 10, 20),
 )

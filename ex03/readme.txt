@@ -1,0 +1,1 @@
+- bokeh=3.1.0 // Didn't work for me with bokeh=3.0.8
